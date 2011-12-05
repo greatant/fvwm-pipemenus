@@ -1,9 +1,10 @@
-fvwm-menu-udisks
 fvwm-menu-bluetooth
 fvwm-menu-netcfg
 fvwm-menu-virtualbox
 fvwm-menu-randr
 fvwm-menu-clipboard
 fvwm-menu-mpd
+fvwm-menu-udisks - please see https://gitorious.org/obdevicemenu/obdevicemenu
+		 - fvwm-menu-udisks is a port of obdevicemenu by Jamie Nguyen
 
 by greatant
