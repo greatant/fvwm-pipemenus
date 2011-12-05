@@ -1,0 +1,19 @@
+#!/bin/bash
+
+# Clipboard menu for FVWM
+# by greatant
+#
+# Requires: clipbored
+
+IFS=$'\n'
+
+echo "DestroyMenu recreate FvwmMenuClip"
+echo "AddToMenu FvwmMenuClip"
+
+for i in $(cat $XDG_DATA_HOME/clipbored/clips | tail -n $1); do
+	echo "+ \"${i:0:50}\" Exec 'echo \"${i}\" | xclip -i -selection secondary'"; done
+
+echo "+ \"\" Nop"
+echo "+ \"Clear\" Exec exec clipbored --clear"
+ 
+unset IFS

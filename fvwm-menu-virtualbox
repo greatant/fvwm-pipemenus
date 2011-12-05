@@ -1,0 +1,30 @@
+#!/bin/bash
+
+# fvwm-menu-virtualbox v1
+# by greatant
+#
+# Requires: virtualbox
+
+dif(){
+  awk 'BEGIN{RS=ORS=" "}
+       {NR==FNR?a[$0]++:a[$0]--}
+       END{for(k in a)if(a[k])print k}' <(echo -n "${!1}") <(echo -n "${!2}")
+}
+
+ALLVM=( $(VBoxManage list vms | awk '{print $1}') )
+ACTIVE=( $(VBoxManage list runningvms | awk '{print $1}') )
+INACTIVE=( $(dif ALLVM[@] ACTIVE[@]) )
+
+
+echo "DestroyMenu recreate FvwmMenuVBox"
+echo "AddToMenu FvwmMenuVBox MissingSubmenuFunction FuncFvwmMenuVBox"
+
+for i in ${ACTIVE[@]}; do
+	echo "+ \"${i}\" Popup \"${i}\""; done
+
+for i in ${INACTIVE[@]}; do
+	echo "+ \"${i}\" Exec exec VBoxManage --startvm ${i} --type sdl"; done
+
+echo "+ \"\" Nop"
+
+echo "+ \"Clear\" Nop"

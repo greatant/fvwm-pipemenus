@@ -1,0 +1,76 @@
+#!/bin/bash
+
+# fvwm-menu-bluetooth v1
+# by greatant
+#
+# Requires: bluez-tools
+
+DEVICE=( $(bt-device --list | tail -n +2 | awk '{print $1}') )
+
+main() {
+
+ADAPINFO=$(bt-adapter --info | awk '{print $2}')
+POWER=$(echo $ADAPINFO | cut -d' ' -f9)
+VISIBLE=$(echo $ADAPINFO | cut -d' ' -f4)
+
+echo "DestroyFunc FuncFvwmMenuBluetooth"
+echo "AddToFunc FuncFvwmMenuBluetooth I Piperead '${0} \$0'"
+
+echo "DestroyMenu recreate FvwmMenuBluetooth"
+echo "AddToMenu FvwmMenuBluetooth MissingSubmenuFunction FuncFvwmMenuBluetooth"
+
+if [ $POWER = 0 ]; then
+	echo "+ \"Turn on Bluetooth\" Exec bt-adapter --set Powered 1"
+	exit; else
+	echo "+ \"Turn off Bluetooth\" Exec bt-adapter --set Powered 0"; fi
+
+if [ $VISIBLE = 0 ]; then
+	echo "+ \"Make Visible\" Exec bt-adapter --set Discoverable 1"; else
+	echo "+ \"Make Invisible\" Exec bt-adapter --set Discoverable 0"; fi
+
+echo "+ \"\" Title"
+
+echo "+ \"Send file to device\" Exec exec \"${0}\" --send"
+echo "+ \"Browse files on device\" Exec exec \"${0}\" --browse"
+
+echo "+ \"Devices\" Title"
+IFS=$'\n'
+for i in ${DEVICE[@]}; do
+	DEVINFO=$(bt-device --info ${i} | awk '{print $2}')
+	CONNECT=$(echo $DEVINFO | cut -d' ' -f9)
+	TYPE=$(echo $DEVINFO | cut -d' ' -f4)
+	if [ $CONNECT = 0 ]; then
+		echo "+ \"${i}%$TYPE.png%\" Exec bt-device -c \"${i}\""
+	    else
+		echo "+ \"${i} (connected)%$TYPE.png%\" Exec bt-device -d \"${i}\""
+	fi
+done
+unset IFS
+
+}
+
+send() {
+
+DEV=$(Xdialog --stdout --title "Select Device" --no-tags --radiolist "" 20 50 3 $(for i in ${DEVICE[@]}; do echo "$i $i off"; done) )
+FILE=$(Xdialog --stdout --title "Select file to send" --fselect "${HOME}" 30 100)
+bt-obex --opp "${DEV}" "${FILE}" 2>&1
+if [ $? != 0 ]; then
+	notify-send "File transfer failed"; else
+    	notify-send "File transfer successful!"; fi
+
+}
+
+browse() {
+
+DEV=$(Xdialog --stdout --title "Select Device" --no-tags --radiolist "" 20 50 3 $(for i in ${DEVICE[@]}; do echo "$i $i off"; done) )
+bt-obex --ftp="${DEV}"
+
+}
+
+
+case "${1}" in
+    --send) send;;
+    --browse) browse;;
+    "") main;;
+esac
+

@@ -1,0 +1,148 @@
+#!/bin/bash
+
+# fvwm-menu-mpd v1
+# by greatant
+#
+# Requires: mpd, mpc
+
+main() {
+
+MAIN=$(mpc)
+
+if [ $MAIN=="error: Connection refused" ]; then
+	echo "DestroyMenu recreate FvwmMenuMPD"
+	echo "AddToMenu FvwmMenuMPD \"MPD not available.\" Nop"
+#	echo "AddToMenu FvwmMenuMPD \"MPD not available.\" Exec exec mpd"
+	exit
+fi
+
+PLAPAU=$(echo $MAIN | grep -o "\[playing\]" -c)
+VOLUME=$(echo $MAIN | grep -o "volume:..." | grep -o "...$")
+OUTPUT=$(mpc outputs | grep " " -c)
+
+echo "DestroyFunc FuncFvwmMenuMPD"
+echo "AddToFunc FuncFvwmMenuMPD I Piperead '${0} \$0'"
+
+echo "DestroyMenu recreate FvwmMenuMPD"
+echo "AddToMenu FvwmMenuMPD MissingSubmenuFunction FuncFvwmMenuMPD"
+echo "+ \"Playlist%media/format-justify-left-5.png%\" Popup FvwmMenuMPDplaylist"
+echo "+ \"\" Nop"
+
+if [ $PLAPAU -eq 1 ]; then
+	echo "+ \"Pause%media/media-playback-pause-6.png%\" Exec exec mpc toggle"
+    else
+	echo "+ \"Play%media/media-playback-start-6.png%\" Exec exec mpc toggle"
+fi
+
+echo "+ \"Next%media/media-seek-forward-6.png%\" Exec exec mpc next"
+echo "+ \"Previous%media/media-seek-backward-6.png%\" Exec exec mpc prev"
+echo "+ \"Stop%media/media-playback-stop-6.png%\" Exec exec mpc stop"
+echo "+ \"\" Nop"
+
+if [ $OUTPUT -gt 0 ]; then
+	echo "+ \"Outputs%media/audio-card-2.png%\" Popup FvwmMenuMPDoutput"
+fi
+
+if [ $VOLUME -gt 0 ]; then
+	echo "+ \"Volume:$VOLUME%%%media/audio-volume-high-3.png%\" Popup FvwmMenuMPDvolume"
+    else
+	if [ $VOLUME=="  0" ]; then
+		echo "+ \"Volume [mute]%media/audio-volume-high-3.png%\" Popup FvwmMenuMPDvolume"
+	fi
+fi
+
+echo "+ \"Toggle%media/preferences-desktop-2.png%\" Popup FvwmMenuMPDtoggle"
+
+echo "+ \"\" Nop"
+echo "+ \"Load%media/list-add-4.png%\" Popup FvwmMenuMPDload"
+echo "+ \"Update DB%media/view-refresh-5.png%\" Exec exec mpc update"
+echo "+ \"Kill MPD%media/dialog-close.png%\" Exec exec killall mpd"
+
+echo "DestroyMenu recreate FvwmMenuMPDoutput"
+echo "AddToMenu FvwmMenuMPDoutput DynamicPopDownAction DestroyMenu FvwmMenuMPDoutput"
+mpc outputs | awk '/enabled/ {print "+ \""$3"%media/tick.png%\" Exec mpc disable "$2} /disabled/ {print "+ \""$3"\" Exec mpc enable "$2}'
+
+echo "DestroyMenu recreate FvwmMenuMPDreplay"
+echo "AddToMenu FvwmMenuMPDreplay \"off\" Exec exec mpc replaygain off"
+echo "+ \"track\" Exec exec mpc replaygain track"
+echo "+ \"album\" Exec exec mpc replaygain album"
+
+VOLUMEVAR=(5 10 20 30 40 50 60 70 80 90 100)
+echo "DestroyMenu recreate FvwmMenuMPDvolume"
+echo "AddToMenu FvwmMenuMPDvolume \"mute\" Exec exec mpc volume 0"
+for i in ${VOLUMEVAR[@]}; do
+	echo "+ \"$i%%\" Exec exec mpc volume $i"; done
+
+CROSSVAR=(5 6 7 8 9 10)
+echo "DestroyMenu recreate FvwmMenuMPDcrossfade"
+echo "AddToMenu FvwmMenuMPDcrossfade \"off\" Exec exec mpc crossfade 0"
+for i in ${CROSSVAR[@]}; do
+	echo "+ \"$i\" Exec exec mpc crossfade $i"; done
+
+}
+
+toggle() {
+
+TOGVAR=$(mpc)
+RAND=$(echo $TOGVAR | grep -o "random: on" -c)
+REPEAT=$(echo $TOGVAR | grep -o "repeat: on" -c)
+SINGLE=$(echo $TOGVAR | grep -o "single: on" -c)
+CONSUME=$(echo $TOGVAR | grep -o "consume: on" -c)
+CROSS=$(mpc crossfade | awk '/[1-9]/ {print $2} / 0/ {print "off"}')
+REPLAY=$(mpc replaygain | cut -d " " -f2)
+
+echo "DestroyMenu recreate FvwmMenuMPDtoggle"
+echo "AddToMenu FvwmMenuMPDtoggle DynamicPopDownAction DestroyMenu FvwmMenuMPDtoggle"
+
+if [ $RAND -eq 1 ]; then
+	echo "+ \"%media/media-playlist-shuffle-2.png%Random%media/tick.png%\" Exec exec mpc random"
+    else
+	echo "+ \"%media/media-playlist-shuffle-2.png%Random\" Exec exec mpc random"
+fi
+if [ $REPEAT -eq 1 ]; then
+	echo "+ \"%media/media-playlist-repeat-2.png%Repeat%media/tick.png%\" Exec exec mpc repeat"
+    else
+	echo "+ \"%media/media-playlist-repeat-2.png%Repeat\" Exec exec mpc repeat"
+fi
+if [ $SINGLE -eq 1 ]; then
+	echo "+ \"%media/single.png%Single%media/tick.png%\" Exec exec mpc single"
+    else
+	echo "+ \"%media/single.png%Single\" Exec exec mpc single"
+fi
+if [ $CONSUME -eq 1 ]; then
+	echo "+ \"%media/consume.png%Consume%media/tick.png%\" Exec exec mpc consume"
+    else
+	echo "+ \"%media/consume.png%Consume\" Exec exec mpc consume"
+fi
+
+echo "+ \"Crossfade [$CROSS]%media/draw-triangle.png%\" Popup FvwmMenuMPDcrossfade"
+echo "+ \"ReplayGain [$REPLAY]%media/office-chart-line-stacked2.png%\" Popup FvwmMenuMPDreplay"
+
+}
+
+playlist() {
+
+echo "DestroyMenu recreate FvwmMenuMPDplaylist"
+echo "AddToMenu FvwmMenuMPDplaylist DynamicPopDownAction DestroyMenu FvwmMenuMPDplaylist"
+echo "+ \"Clear\" Exec exec mpc clear"
+echo "+ \"\" Nop"
+mpc playlist | awk '{print "+ \""$RS"\" Exec exec mpc play "$NR}'
+
+}
+
+load() {
+
+echo "DestroyMenu recreate FvwmMenuMPDload"
+echo "AddToMenu FvwmMenuMPDload DynamicPopDownAction DestroyMenu FvwmMenuMPDload"
+mpc lsplaylists | awk '{print "+ \""$RS"\" Exec exec mpc load \""$RS"\""}'
+
+}
+
+
+
+case "${1}" in
+    FvwmMenuMPDload) load;;
+    FvwmMenuMPDplaylist) playlist;;
+    FvwmMenuMPDtoggle) toggle;;
+    "") main;;
+esac

@@ -1,0 +1,97 @@
+#!/bin/bash
+
+# fvwm-menu-randr v1
+# by greatant
+#
+# Requires: xrandr
+
+main () {
+
+echo "DestroyFunc FuncFvwmMenuRandR"
+echo "AddToFunc FuncFvwmMenuRandR I Piperead '${0} --options \$0'"
+
+echo "DestroyMenu recreate FvwmMenuRandR"
+echo "AddToMenu FvwmMenuRandR MissingSubmenuFunction FuncFvwmMenuRandR"
+
+xrandr | grep connect | awk '/ connected/ {print "+ \""$1"\t"$3"\" Popup "$1} \
+				!/ connected/ {print "+ \""$1"\""}'
+}
+
+options () {
+
+output=${1}
+
+echo "DestroyMenu recreate ${output}"
+echo "AddToMenu ${output}"
+echo "+ \"modes\" Popup FvwmMenuRandRmodes"
+echo "+ \"\" Nop"
+echo "+ \"zoom\" Popup FvwmMenuRandRzoom"
+echo "+ \"rotate\" Popup FvwmMenuRandRrotate"
+echo "+ \"reflect\" Popup FvwmMenuRandRreflect"
+echo "+ \"position\" Popup FvwmMenuRandRposition"
+echo "+ \"\" Nop"
+echo "+ \"on\" Exec exec xrandr --output ${output} --auto"
+echo "+ \"off\" Exec exec xrandr --output ${output} --off"
+echo "+ \"\" Nop"
+echo "+ \"reset\" Exec exec xrandr --output ${output} --auto --rotate normal --scale 1x1 --panning 0x0"
+
+echo "DestroyMenu recreate FvwmMenuRandRmodes"
+echo "AddToMenu FvwmMenuRandRmodes"
+
+for i in $(xrandr | grep -A 20 ${output} | awk '/  / {print $1}'); do
+	echo "+ \"${i}\" Exec exec xrandr --output ${output} --mode ${i}"; done
+
+echo "DestroyMenu recreate FvwmMenuRandRrotate"
+echo "AddToMenu FvwmMenuRandRrotate"
+echo "+ \"right\" Exec exec xrandr --output ${output} --mode right"
+echo "+ \"left\" Exec exec xrandr --output ${output} --mode left"
+echo "+ \"invert\" Exec exec xrandr --output ${output} --mode inverted"
+echo "+ \"normal\" Exec exec xrandr --output ${output} --mode normal"
+
+echo "DestroyMenu recreate FvwmMenuRandRzoom"
+echo "AddToMenu FvwmMenuRandRzoom"
+echo "+ \"zoom in\" Exec exec xrandr --output ${output} --scale 0.8x0.8"
+echo "+ \"zoom out\" Exec exec xrandr --output ${output} --scale 1.2x1.2"
+
+echo "DestroyMenu recreate FvwmMenuRandRreflect"
+echo "AddToMenu FvwmMenuRandRreflect"
+echo "+ \"normal\" Exec exec xrandr --output ${output} --reflect normal"
+echo "+ \"flip\" Exec exec xrandr --output ${output} --reflect"
+
+echo "DestroyMenu recreate FvwmMenuRandRposition"
+echo "AddToMenu FvwmMenuRandRposition"
+echo "+ \"same as\" Popup ${output}=same-as"
+echo "+ \"above\" Popup ${output}=above"
+echo "+ \"below\" Popup ${output}=below"
+echo "+ \"right of\" Popup ${output}=right-of"
+echo "+ \"left of\" Popup ${output}=left-of"
+
+}
+
+position() {
+
+title="${1}"
+output="${1%=*}"
+command="${1#*=}"
+
+echo "DestroyMenu recreate ${title}"
+echo "AddToMenu ${title}"
+for i in $(xrandr | grep " connected" | grep -v "${output}" | awk '{print $1}'); do
+echo "+ \"${i}\" Exec exec xrandr --output ${output} --${command} ${i}"
+done
+
+}
+
+case "${1}" in
+	"--options")
+		if [[ ${2} = *=* ]]; then
+			position "${2}"
+		    else
+			options "${2}"
+		fi
+		;;
+	"")
+		main
+		;;
+		
+esac
