@@ -1,9 +1,10 @@
 #!/bin/bash
-
-# fvwm-menu-randr v1
+# fvwm-menu-randr
 # by greatant
+# https://github.com/greatant/fvwm-pipemenus/
 #
 # Requires: xrandr
+#====================================================
 
 main () {
 

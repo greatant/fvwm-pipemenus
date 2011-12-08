@@ -1,9 +1,10 @@
 #!/bin/bash
-
-# fvwm-menu-bluetooth v1
+# fvwm-menu-bluetooth
 # by greatant
+# https://github.com/greatant/fvwm-pipemenus/
 #
-# Requires: bluez-tools
+# Requires: bluez-tools, Xdialog
+#====================================================
 
 DEVICE=( $(bt-device --list | tail -n +2 | awk '{print $1}') )
 
@@ -34,6 +35,10 @@ echo "+ \"Send file to device\" Exec exec \"${0}\" --send"
 echo "+ \"Browse files on device\" Exec exec \"${0}\" --browse"
 
 echo "+ \"Devices\" Title"
+
+# Need to read the device-type from bt-device -i
+# then use bt-audio -c or bt-input -c, etc to connect depending on type.
+
 IFS=$'\n'
 for i in ${DEVICE[@]}; do
 	DEVINFO=$(bt-device --info ${i} | awk '{print $2}')

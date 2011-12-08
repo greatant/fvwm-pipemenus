@@ -1,11 +1,12 @@
 #!/bin/bash
-
-# fvwm-menu-virtualbox v1
+# fvwm-menu-virtualbox
 # by greatant
+# https://github.com/greatant/fvwm-pipemenus/
 #
 # Requires: virtualbox
+#====================================================
 
-dif(){
+dif() {
   awk 'BEGIN{RS=ORS=" "}
        {NR==FNR?a[$0]++:a[$0]--}
        END{for(k in a)if(a[k])print k}' <(echo -n "${!1}") <(echo -n "${!2}")

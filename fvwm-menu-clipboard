@@ -1,9 +1,10 @@
 #!/bin/bash
-
-# Clipboard menu for FVWM
+# fvwm-menu-clipboard
 # by greatant
+# https://github.com/greatant/fvwm-pipemenus/
 #
-# Requires: clipbored
+# Requires: clipbored, xsel
+#====================================================
 
 IFS=$'\n'
 

@@ -2,6 +2,9 @@
 #
 # https://github.com/pbrisbin/wifi-pipe
 #
+# ported to FVWM by greatant
+# https://github.com/greatant/fvwm-pipemenus/
+#
 ###
 
 . /usr/lib/network/network
@@ -15,7 +18,7 @@ errorout() {
 
 create_profile() {
   local essid="$1" interface="$2" security="$3" key="$4"
-  local profile_file="$PROFILE_DIR/$essid"
+profile_file="$PROFILE_DIR/$essid"
 
   cat > "$profile_file" << EOF
 CONNECTION="wireless"
@@ -26,14 +29,15 @@ SCAN="yes"
 IP="dhcp"
 TIMEOUT="10"
 SECURITY="$security"
+KEY="$key"
 EOF
 
-  if [[ -n "$key" ]]; then
-    echo "KEY=\"$key\"" >> "$profile_file"
-    chmod 600 "$profile_file"
-  else
-    chmod 644 "$profile_file"
-  fi
+#  if [[ -n "$key" ]]; then
+#    echo "KEY=\"$key\"" >> "$profile_file"
+#    chmod 600 "$profile_file"
+#  else
+#    chmod 644 "$profile_file"
+#  fi
 }
 
 # prints the actual xml based on the scan
@@ -68,18 +72,19 @@ connect() {
   local essid="$1" profile_file profile security key
 
   # check for an existing profile
-  profile_file="$(grep -REl "ESSID=[\"']?$essid[\"']?" "$PROFILE_DIR" | grep -v '~$' | head -1)"
+  profile_file=$(grep -REl "ESSID=[\"']?$essid[\"']?" "$PROFILE_DIR" | grep -v '~$' | head -1)
 
   if [[  -n "$profile_file" ]]; then
     profile="$(basename "$profile_file")"
   else
     profile="$essid"
-    security="$(awk -F '=' "/$essid/"'{print $1}' /tmp/networks.tmp | head -n 1)"
+    security="$(awk -F '=' "/$essid/"'{print $2}' /tmp/networks.tmp | head -n 1)"
 
     # ask for the security key if needed
     if [[ "$security" != 'none' ]]; then
-#      key="$(Xdialog --title "WPA Authentication" --password --inputbox "Please enter WPA key for Milhouse" 10 50)"
-      key='$(zenity --entry --title="Authentication" --text="Please enter $security key for $essid" --hide-text)'
+      key=$(Xdialog --stdout --title "Authentication" --inputbox "Please enter $security key for $essid" 10 50)
+#      key=$(zenity --entry --title="Authentication" --text="Please enter $security key for $essid" --hide-text)
+      [[ $? -ne 0 ]] && exit
     fi
 
     # create the new profile
@@ -87,14 +92,17 @@ connect() {
   fi
 
   # connect
-  /usr/bin/netcfg "$profile" > /tmp/output.tmp
+  netcfg "$profile" > /tmp/output.tmp
   
   # if failed, ask about removal of created profile
   if [[ $? -ne 0 ]]; then
-    zenity --question \
-           --title="Connection failed" \
-           --text="$(grep -Eo "[\-\>]\ .*$" /tmp/output.tmp) \n Remove $profile_file?" \
-           --ok-label="Remove profile"
+#    zenity --question \
+#           --title="Connection failed" \
+#           --text="$(grep -Eo "[\-\>]\ .*$" /tmp/output.tmp) \n Remove $profile_file?" \
+#           --ok-label="Remove profile"
+	Xdialog --stdout --wrap --ok-label "Remove" --title "Connection failed" \
+	--yesno "$(grep -Eo "[\-\>]\ .*$" /tmp/output.tmp) \n Remove $profile_file?" \
+	10 50
 
     [[ $? -eq 0 ]] && rm "$profile_file"
   fi

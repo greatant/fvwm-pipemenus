@@ -1,30 +1,40 @@
 #!/bin/bash
 # fvwm-menu-netcfg
-# by greatant v1
+# by greatant
+# https://github.com/greatant/fvwm-pipemenus/
+#
+# Requires:	netcfg
+#		fvwm-menu-netcfg-scan (wifi-pipe port: https://github.com/pbrisbin/wifi-pipe)
+#		Xdialog or zenity
+#		password-less sudo access to netcfg and fvwm-menu-netcfg-scan
+#====================================================
 
-dif(){
+dif() {
   awk 'BEGIN{RS=ORS=" "}
        {NR==FNR?a[$0]++:a[$0]--}
        END{for(k in a)if(a[k])print k}' <(echo -n "${!1}") <(echo -n "${!2}")
 }
 
-PROFILEDIR="/etc/network.d/"
-ACTIVEPROFILE=( $(netcfg current) )
-ALLPROFILE=( $(netcfg list) )
-INACTIVEPROFILE=( $(dif ALLPROFILE[@] ACTIVEPROFILE[@]) )
+ProfileDir="/etc/network.d/"
+Active=( $(netcfg current) )
+All=( $(netcfg list) )
+Inactive=( $(dif All[@] Active[@]) )
 
 
 echo "DestroyMenu recreate FvwmMenuNetcfg"
 echo "AddToMenu FvwmMenuNetcfg \"Scan\" Popup FvwmMenuNetcfgScan"
 
-if [ ${#ACTIVEPROFILE[@]} -gt 0 ]; then
+if [ ${#Active[@]} -gt 0 ]; then
 	echo "AddToMenu FvwmMenuNetcfg \"Active profiles\" Title"
-	for i in ${ACTIVEPROFILE[@]}; do . "$PROFILEDIR$i"
-		echo "AddToMenu FvwmMenuNetcfg \"$i ($INTERFACE)%$CONNECTION.png%\" Exec sudo netcfg down $i"; done
+	for profile in ${Active[@]}; do
+		. "${ProfileDir}${profile}"
+		echo "AddToMenu FvwmMenuNetcfg \"${profile} (${INTERFACE})%${CONNECTION}.png%\" Exec sudo netcfg down ${profile}"
+	done
 fi
 
 echo "AddToMenu FvwmMenuNetcfg \"Inactive profiles\" Title"
 
-for i in ${INACTIVEPROFILE[@]}; do
-	. "$PROFILEDIR$i"
-	echo "AddToMenu FvwmMenuNetcfg \"$i%$CONNECTION.png%\" Exec sudo netcfg $i"; done
+for profile in ${Inactive[@]}; do
+	. "${ProfileDir}${profile}"
+	echo "AddToMenu FvwmMenuNetcfg \"${profile}%${CONNECTION}.png%\" Exec sudo netcfg ${profile}"
+done
