@@ -12,20 +12,60 @@ dif() {
        END{for(k in a)if(a[k])print k}' <(echo -n "${!1}") <(echo -n "${!2}")
 }
 
-ALLVM=( $(VBoxManage list vms | awk '{print $1}') )
-ACTIVE=( $(VBoxManage list runningvms | awk '{print $1}') )
-INACTIVE=( $(dif ALLVM[@] ACTIVE[@]) )
+main() {
 
+ActiveIcon="online.png"
+InactiveIcon="offline.png"
+
+All=( $(VBoxManage list vms | awk '{print $1}') )
+Active=( $(VBoxManage list runningvms | awk '{print $1}') )
+Inactive=( $(dif All[@] Active[@]) )
+
+# MissingSubmenuFunction
+echo "DestroyFunc FuncFvwmMenuVBox"
+echo "AddToFunc FuncFvwmMenuVBox I Piperead '${0} \$0'"
 
 echo "DestroyMenu recreate FvwmMenuVBox"
 echo "AddToMenu FvwmMenuVBox MissingSubmenuFunction FuncFvwmMenuVBox"
 
-for i in ${ACTIVE[@]}; do
-	echo "+ \"${i}\" Popup \"${i}\""; done
+for vm in ${Active[@]}; do
+	echo "+ \"${vm}%$ActiveIcon%\" Popup \"${vm}\""; done
 
-for i in ${INACTIVE[@]}; do
-	echo "+ \"${i}\" Exec exec VBoxManage --startvm ${i} --type sdl"; done
+for vm in ${Inactive[@]}; do
+	echo "+ \"${vm}%$InactiveIcon%\" Exec exec VBoxManage startvm ${vm} --type sdl"; done
 
 echo "+ \"\" Nop"
 
-echo "+ \"Clear\" Nop"
+echo "+ \"Pause All\" Exec for vm in ${Active[@]}; do VBoxManage controlvm ${vm} pause; done"
+echo "+ \"Resume All\" Exec for vm in ${Active[@]}; do VBoxManage controlvm ${vm} resume; done"
+
+if [ ${#Active[@]} -gt 0 ]; then
+	echo "+ \"Shutdown All\" Exec for vm in ${Active[@]}; do VBoxManage controlvm ${vm} acpipowerbutton; done"
+fi
+
+}
+
+submenu() {
+
+State=$(VBoxManage showvminfo ${1} | grep State | awk '{print $2}')
+
+echo "DestroyMenu recreate ${1}"
+echo "AddToMenu ${1}"
+
+#if [ $State=="running" ]; then
+#	echo "+ \"Pause\" Exec exec VBoxManage controlvm ${1} pause"
+#    else
+#    	if [ $State=="paused" ]; then
+#		echo "+ \"Resume\" Exec exec VBoxManage controlvm ${1} resume"
+#	fi
+#fi
+
+echo "+ \"Shutdown\" Exec exec VBoxManage controlvm ${1} acpipowerbutton"
+
+}
+
+
+case "${1}" in
+    "") main;;
+    "WinXP") submenu;;
+esac
